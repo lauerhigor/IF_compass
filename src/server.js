@@ -1,23 +1,24 @@
 require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/database');
-const customerRoutes = require('./routes/customer_routes');
-const accountRoutes = require('./routes/account_routes');
 const openFinanceRoutes = require('./routes/open_finance_routes');
-const transactionRoutes = require('./routes/transaction_routes');
+// const customerRoutes = require('./routes/customer_routes'); // Removed
+// const accountRoutes = require('./routes/account_routes'); // Removed
+// const transactionRoutes = require('./routes/transaction_routes'); // Removed
+
 const app = express();
 
-app.use(express.json()); 
-connectDB(); 
-app.get('/', (req, res) => {
-    res.status(200).json({ status: "API está no ar." });
-});
-app.use('/customers', customerRoutes); 
-app.use('/accounts', accountRoutes); 
-app.use('/openfinance', openFinanceRoutes); 
-app.use('/transactions', transactionRoutes);
+app.use(express.json());
+connectDB();
 
-const PORT = process.env.PORT || 3000; 
+app.get('/', (req, res) => {
+  res.status(200).json({ status: "API está no ar." });
+});
+
+// Global Prefix /openfinance
+app.use('/openfinance', openFinanceRoutes);
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`); 
+  console.log(`Server is running on port ${PORT}`);
 });

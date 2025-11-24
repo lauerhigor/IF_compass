@@ -8,8 +8,8 @@ const Transaction = require('../models/transaction_model');
 exports.createAccount = async (req, res) => {
     // 1. Lê customerId do body (como o Teste 3 envia)
     //    e NÃO lê mais o _id do body
-    const { customerId, type, branch, number } = req.body; 
-    
+    const { customerId, type, branch, number } = req.body;
+
     try {
         //
         const customer = await Customer.findById(customerId);
@@ -39,7 +39,8 @@ exports.createAccount = async (req, res) => {
             type,
             branch,
             number,
-            balance: 0
+            balance: 0,
+            customer: customerId // Salva referência do customer
         });
 
         const savedAccount = await newAccount.save();
@@ -54,20 +55,20 @@ exports.createAccount = async (req, res) => {
 exports.getBalance = async (req, res) => {
     const { accountId } = req.params;
     try {
-        const account = await Account.findById(accountId).select('balance'); 
+        const account = await Account.findById(accountId).select('balance');
         if (!account) {
-            return res.status(404).json({ message: "Conta não encontrada." }); 
+            return res.status(404).json({ message: "Conta não encontrada." });
         }
-        res.status(200).json({ balance: account.balance }); 
+        res.status(200).json({ balance: account.balance });
     } catch (error) {
-        res.status(400).json({ message: "Erro ao buscar saldo", error: error.message }); 
+        res.status(400).json({ message: "Erro ao buscar saldo", error: error.message });
     }
 };
 
 exports.createTransaction = async (req, res) => {
     // 1. Lê os campos do body (como estava)
     const { accountId, amount, type, description, category } = req.body;
-    
+
     try {
         // 2. Validação de Valor Positivo (implementada anteriormente)
         if (typeof amount !== 'number' || amount <= 0) {
@@ -75,7 +76,7 @@ exports.createTransaction = async (req, res) => {
                 message: "Valor da transação inválido. O valor deve ser um número maior que zero."
             });
         }
-        
+
         // =============================================
         // NOVO: VALIDAÇÃO DE CASAS DECIMAIS (Corrige Teste 30)
         // =============================================
@@ -107,7 +108,7 @@ exports.createTransaction = async (req, res) => {
         } else if (type === 'debit') {
             const amountInCents = Math.round(amount * 100);
             const balanceInCents = Math.round(account.balance * 100);
-            
+
             if (balanceInCents < amountInCents) {
                 return res.status(400).json({ message: "Saldo insuficiente." }); //
             }
@@ -140,9 +141,10 @@ exports.createTransaction = async (req, res) => {
             description,
             amount, // Valor agora validado
             type,
-            category
+            category,
+            account: accountId // Salva referência da conta
         });
-        
+
         const savedTransaction = await newTransaction.save();
         account.transactions.push(savedTransaction._id); //
         await account.save(); //
@@ -160,13 +162,13 @@ exports.createTransaction = async (req, res) => {
 exports.getTransactions = async (req, res) => {
     const { accountId } = req.params;
     try {
-        const account = await Account.findById(accountId).populate('transactions'); 
+        const account = await Account.findById(accountId).populate('transactions');
         if (!account) {
-            return res.status(404).json({ message: "Conta não encontrada." }); 
+            return res.status(404).json({ message: "Conta não encontrada." });
         }
-        res.status(200).json(account.transactions); 
+        res.status(200).json(account.transactions);
     } catch (error) {
-        res.status(400).json({ message: error.message }); 
+        res.status(400).json({ message: error.message });
     }
 };
 

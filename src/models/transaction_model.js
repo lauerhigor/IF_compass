@@ -6,7 +6,8 @@ const TransactionSchema = new mongoose.Schema({
   description: { type: String, required: true },
   amount: { type: Number, required: true },
   type: { type: String, required: true, enum: ['credit', 'debit'] },
-  category: { type: String, required: true }
+  category: { type: String, required: true },
+  account: { type: String, ref: 'Account', required: true }
 });
 
 module.exports = mongoose.model('Transaction', TransactionSchema);

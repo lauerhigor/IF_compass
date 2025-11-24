@@ -6,7 +6,8 @@ const AccountSchema = new mongoose.Schema({
   branch: { type: String, required: true },
   number: { type: String, required: true, unique: true },
   balance: { type: Number, required: true, default: 0.00 },
-  transactions: [{ type: String, ref: 'Transaction' }]
+  transactions: [{ type: String, ref: 'Transaction' }],
+  customer: { type: String, ref: 'Customer', required: true }
 });
 
 module.exports = mongoose.model('Account', AccountSchema);
