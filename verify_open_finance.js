@@ -53,12 +53,12 @@ async function runVerification() {
         console.log("\n1. Creating Customer...");
         const customerRes = await request('POST', '/customers', {
             name: "Test User",
-            cpf: "12345678901",
+            cpf: "123.456.789-01", // Testing formatted CPF
             email: "test@example.com"
         }).catch(e => {
             if (e.status === 409) {
                 console.log("Customer already exists, trying lookup...");
-                return request('GET', '/customers/lookup/by-cpf/12345678901');
+                return request('GET', '/customers/lookup/by-cpf/12345678901'); // Lookup uses clean CPF
             }
             throw e;
         });
@@ -106,7 +106,7 @@ async function runVerification() {
         console.log("\n6. Creating Consent...");
         const consentRes = await request('POST', '/consents', {
             customerId: customerId,
-            permissions: ["CUSTOMER_DATA_READ", "ACCOUNTS_READ", "BALANCES_READ"]
+            permissions: ["CUSTOMER_DATA_READ", "ACCOUNTS_READ", "BALANCES_READ", "TRANSACTIONS_READ"]
         });
         const consentId = consentRes.data._id;
         console.log("Consent created:", consentId);

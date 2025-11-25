@@ -68,37 +68,14 @@ exports.verifyConsent = async (req, res, next) => {
             // "GET /openfinance/customers/:customerId/accounts (Requer permissão ACCOUNTS_READ)"
             // So I MUST check permissions.
 
-            requiredPermission = 'ACCOUNTS_READ'; // Defaulting to this or maybe I should check the prompt again.
+        } else if (path.includes('/transactions')) {
+            requiredPermission = 'TRANSACTIONS_READ';
         } else if (path.match(/\/customers\/[^/]+$/)) { // /customers/:id
             requiredPermission = 'CUSTOMER_DATA_READ';
         }
 
-        // Special case for transactions if not explicitly defined, let's add TRANSACTIONS_READ or reuse ACCOUNTS_READ
-        if (path.includes('/transactions')) {
-            // Let's use a generic check or assume the user puts 'ACCOUNTS_READ' for now as it's related to account data.
-            // Or better, let's not enforce permission string strictly if not sure, BUT the prompt explicitly listed permissions for others.
-            // Let's assume 'ACCOUNTS_READ' covers transactions for this simulation or 'TRANSACTIONS_READ'.
-            // I will use 'ACCOUNTS_READ' for transactions as well for simplicity unless I see otherwise.
-            // Wait, standard Open Finance has ACCOUNTS_READ, ACCOUNTS_BALANCES_READ, ACCOUNTS_TRANSACTIONS_READ.
-            // I'll stick to what's in the prompt.
-            // Prompt: GET /openfinance/transactions/:accountId
-            // (Empty line below it).
-            // I will check if permissions array includes the required one.
-        }
-
         if (requiredPermission && !consent.permissions.includes(requiredPermission)) {
-            // For transactions, if no specific permission listed, maybe just having consent is enough?
-            // But for others it is required.
             return res.status(403).json({ message: `Acesso negado. Permissão '${requiredPermission}' necessária.` });
-        }
-
-        // For transactions, if I didn't set requiredPermission, I should probably set one.
-        if (path.includes('/transactions') && !requiredPermission) {
-            // Let's assume ACCOUNTS_READ is enough or check if they have ANY permission?
-            // Let's enforce 'ACCOUNTS_READ' for transactions too as a safe bet.
-            if (!consent.permissions.includes('ACCOUNTS_READ')) {
-                return res.status(403).json({ message: "Acesso negado. Permissão 'ACCOUNTS_READ' necessária." });
-            }
         }
 
         next();

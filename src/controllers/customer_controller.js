@@ -1,21 +1,15 @@
 const Customer = require('../models/customer_model');
 
-
 exports.createCustomer = async (req, res) => {
-    // 1. Leitura do corpo (como estava)
     const { name, cpf, email } = req.body;
 
     try {
-        // 2. Validação de existência (como estava)
+        // 1. Validação de existência
         if (!name || !cpf || !email) {
             return res.status(400).json({ message: "Os campos name, cpf e email são obrigatórios." });
         }
 
-        // =============================================
-        // NOVO: VALIDAÇÃO DE NOME (Corrige Testes 20 e 21)
-        // =============================================
-
-        // Define um comprimento máximo para o nome (Teste 20)
+        // 2. Validação de Nome
         const MAX_NAME_LENGTH = 100;
         if (name.length > MAX_NAME_LENGTH) {
             return res.status(400).json({
@@ -23,18 +17,14 @@ exports.createCustomer = async (req, res) => {
             });
         }
 
-        // Regex para permitir letras (incluindo acentuadas) e espaços. Rejeita números e caracteres especiais. (Teste 21)
         const nameRegex = /^[a-zA-ZÀ-ÿ\s]+$/;
         if (!nameRegex.test(name)) {
             return res.status(400).json({
                 message: "Nome inválido. O nome deve conter apenas letras e espaços."
             });
         }
-        // =============================================
-        // FIM DA VALIDAÇÃO DE NOME
-        // =============================================
 
-        // 3. Validação de Email (Adicionada anteriormente)
+        // 3. Validação de Email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({
@@ -42,16 +32,18 @@ exports.createCustomer = async (req, res) => {
             });
         }
 
-        // 4. Validação de CPF (Adicionada anteriormente)
+        // 4. Validação de CPF (Atualizada para aceitar formatação)
+        // Remove caracteres não numéricos
+        const cleanCpf = cpf.replace(/\D/g, '');
+
         const cpfRegex = /^\d{11}$/;
-        if (!cpfRegex.test(cpf)) {
+        if (!cpfRegex.test(cleanCpf)) {
             return res.status(400).json({
-                message: "CPF inválido. O CPF deve conter exatamente 11 dígitos numéricos, sem pontos, traços ou espaços."
+                message: "CPF inválido. O CPF deve conter exatamente 11 dígitos numéricos."
             });
         }
-        // =============================================
 
-        // 5. Lógica do contador (como você implementou)
+        // 5. Lógica do contador
         let newId = "cus_001";
         const lastCustomer = await Customer.findOne().sort({ _id: -1 });
 
@@ -65,26 +57,32 @@ exports.createCustomer = async (req, res) => {
             }
         }
 
-        // 6. Salva com o novo _id gerado
+        // 6. Salva com o novo _id gerado e CPF limpo
         const newCustomer = new Customer({
             _id: newId,
-            name, // Nome agora validado
-            cpf,  // CPF validado
-            email // Email validado
+            name,
+            cpf: cleanCpf,
+            email
         });
 
         const savedCustomer = await newCustomer.save();
         res.status(201).json(savedCustomer);
 
     } catch (error) {
-        // 7. TRATAMENTO DE ERRO DE CPF DUPLICADO (Adicionado anteriormente)
-        if (error.code === 11000 && error.keyPattern && error.keyPattern.cpf) {
-            return res.status(409).json({ // 409 Conflict
-                message: "Erro ao criar cliente: O CPF informado já está cadastrado."
-            });
+        // 7. Tratamento de erro de duplicidade (CPF ou Email)
+        if (error.code === 11000) {
+            if ((error.keyPattern && error.keyPattern.cpf) || (error.keyValue && error.keyValue.cpf) || error.message.includes('cpf')) {
+                return res.status(409).json({
+                    message: "Erro ao criar cliente: O CPF informado já está cadastrado."
+                });
+            }
+            if ((error.keyPattern && error.keyPattern.email) || (error.keyValue && error.keyValue.email) || error.message.includes('email')) {
+                return res.status(409).json({
+                    message: "Erro ao criar cliente: O Email informado já está cadastrado."
+                });
+            }
         }
 
-        // Retorno genérico para outros erros
         res.status(400).json({ message: error.message });
     }
 };
@@ -92,9 +90,7 @@ exports.createCustomer = async (req, res) => {
 exports.getCustomerById = async (req, res) => {
     const { id } = req.params;
     try {
-        // .select('-accounts') é uma boa prática para não expor dados internos
         const customer = await Customer.findById(id).select('-accounts');
-
         if (!customer) {
             return res.status(404).json({ message: "Cliente não encontrado." });
         }
@@ -107,7 +103,12 @@ exports.getCustomerById = async (req, res) => {
 exports.lookupByCpf = async (req, res) => {
     const { cpf } = req.params;
     try {
-        const customer = await Customer.findOne({ cpf }).select('_id cpf');
+        // Ensure we lookup by clean CPF if passed formatted? 
+        // Usually lookup is done by the stored value (clean).
+        // If user passes formatted CPF in URL, we might need to clean it here too.
+        const cleanCpf = cpf.replace(/\D/g, '');
+
+        const customer = await Customer.findOne({ cpf: cleanCpf }).select('_id cpf');
         if (!customer) {
             return res.status(404).json({ message: "Cliente não encontrado." });
         }
